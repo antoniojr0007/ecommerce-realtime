@@ -1,6 +1,6 @@
 'use strict'
 
-class OrderOrder {
+class OrderStore {
     get rules() {
         return {
             items: 'array|required',
@@ -10,4 +10,4 @@ class OrderOrder {
     }
 }
 
-module.exports = OrderOrder
+module.exports = OrderStore
