@@ -39,9 +39,9 @@ class OrderController {
      * @param {Response} ctx.response
      */
     async store({ request, response, transform }) {
+        const trx = await Database.beginTransaction()
         try {
             const { user_id, items } = request.all()
-            const trx = await Database.beginTransaction()
             const order = await Order.create({ user_id }, trx)
             const service = new OrderService(order, trx)
             await service.syncItems(items)
@@ -50,6 +50,7 @@ class OrderController {
                 .status(201)
                 .send(await transform.item(order, OrderTransformer))
         } catch (error) {
+            await trx.rollback()
             throw error
         }
     }
@@ -76,7 +77,23 @@ class OrderController {
      * @param {Request} ctx.request
      * @param {Response} ctx.response
      */
-    async update({ params, request, response }) {}
+    async update({ params, request, response }) {
+        const trx = await Database.beginTransaction()
+        try {
+            const { user_id, items } = request.all()
+            const order = await Order.findOrFail(params.order_id)
+            // O administrador pode alterar o cliente que fez o pedido
+            order.user_id = user_id
+            await order.save(trx)
+            const service = new OrderService(order, trx)
+            await service.syncItems(items)
+            await trx.commit()
+            return response.send(await transform.item(order, OrderTransformer))
+        } catch (error) {
+            await trx.rollback()
+            throw error
+        }
+    }
 
     /**
      * Delete a order with id.
@@ -86,7 +103,21 @@ class OrderController {
      * @param {Request} ctx.request
      * @param {Response} ctx.response
      */
-    async destroy({ params, request, response }) {}
+    async destroy({ params, response }) {
+        const trx = await Database.beginTransaction()
+        try {
+            const order = await Order.findOrFail(params.order_id)
+            const service = new OrderService(order, trx)
+            await service.deleteItems()
+            await order.delete(trx)
+            return response
+                .status(204)
+                .send({ message: 'Pedido deletado com sucesso!' })
+        } catch (error) {
+            await trx.rollback()
+            throw error
+        }
+    }
 }
 
 module.exports = OrderController
