@@ -5,6 +5,8 @@
 /** @typedef {import('@adonisjs/framework/src/View')} View */
 const OrderTransformer = use('App/Transformers/Order/OrderTransformer')
 const Order = use('App/Models/Order')
+const Database = use('Database')
+const OrderService = use('App/Services/Order/OrderService')
 
 /**
  * Resourceful controller for interacting with orders
@@ -36,7 +38,21 @@ class OrderController {
      * @param {Request} ctx.request
      * @param {Response} ctx.response
      */
-    async store({ request, response }) {}
+    async store({ request, response, transform }) {
+        try {
+            const { user_id, items } = request.all()
+            const trx = await Database.beginTransaction()
+            const order = await Order.create({ user_id }, trx)
+            const service = new OrderService(order, trx)
+            await service.syncItems(items)
+            await trx.commit()
+            return response
+                .status(201)
+                .send(await transform.item(order, OrderTransformer))
+        } catch (error) {
+            throw error
+        }
+    }
 
     /**
      * Display a single order.
