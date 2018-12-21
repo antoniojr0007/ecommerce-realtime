@@ -100,6 +100,27 @@ class OrderController {
     }
 
     /**
+     * Este método adiciona itens ao carrinho
+     *
+     * @param {Object} ctx
+     */
+    async incrementItem({ params, request, response, transform }) {
+        const order = await Order.findOrFail(params.id)
+        const { item } = request.all()
+        const service = new OrderService(order)
+        await service.incrementItem(item)
+        return response.send(await transform.item(order, OrderTransformer))
+    }
+
+    async decrementItem({ params, request, response, transform }) {
+        const order = await Order.findOrFail(params.id)
+        const { item } = request.all()
+        const service = new OrderService(order)
+        await service.decrementItem(item)
+        response.send(await transform.item(order, OrderTransformer))
+    }
+
+    /**
      * Delete a order with id.
      * DELETE orders/:id
      *

@@ -75,6 +75,16 @@ Route.group(() => {
         .apiOnly()
         .validator(new Map([[['order.store'], ['Order/Order']]]))
 
+    // Adiciona itens ao pedido
+    Route.post('order/:id/items/increment', 'OrderController.incrementItem').as(
+        'order.item.add'
+    )
+
+    // Diminui a quantidade ou deleta itens do pedido
+    Route.post('order/:id/items/decrement', 'OrderController.decrementItem').as(
+        'order.item.remove'
+    )
+
     /**
      * Images Resource Routes
      */
